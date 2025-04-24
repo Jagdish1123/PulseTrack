@@ -13,7 +13,7 @@ PulseTrack is an advanced fitness tracking application designed to help users mo
 ## Demo Website 🌐
 
 Check out the live app here:  
-[PulseTrack Website](https://vercel.com/jagdishs-projects-31710210/pulse-track/AzcCnZ12tYKq7H91GjtTjPvFh86p)
+[PulseTrack Website](https://pulse-track-nine.vercel.app/)
 
 ## Tech Stack 🚀
 
