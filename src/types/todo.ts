@@ -7,6 +7,9 @@ export type Todo = {
   createdAt: Date;
   notes?: string;
   favorite?: boolean;
+  startTime?: Date;
+  endTime?: Date;
+  duration?: number; // in minutes
 };
 
 export type AnalyticsData = {
@@ -14,3 +17,10 @@ export type AnalyticsData = {
   completed: number;
   total: number;
 };
+
+export type TimeSpentData = {
+  category: string;
+  timeSpent: number;
+};
+
+export type AnalyticsViewType = 'daily' | 'weekly' | 'monthly';

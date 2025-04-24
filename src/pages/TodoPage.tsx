@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/sonner';
-import { CheckSquare, Calendar, BarChart, Trash2, Brain, Heart, Dumbbell } from 'lucide-react';
-import { BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CheckSquare, Calendar, Trash2, Brain, Heart, Dumbbell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AchievementBadges from '@/components/AchievementBadges';
 import confetti from 'canvas-confetti';
-import { Todo, AnalyticsData } from '@/types/todo';
+import { Todo, AnalyticsViewType } from '@/types/todo';
 import AddTaskForm from '@/components/todo/AddTaskForm';
 import TaskFilters from '@/components/todo/TaskFilters';
 import TaskDetailDialog from '@/components/todo/TaskDetailDialog';
+import TaskAnalytics from '@/components/todo/TaskAnalytics';
 
 const triggerConfetti = () => {
   confetti({
@@ -31,6 +30,8 @@ const TodoPage = () => {
       return JSON.parse(savedTodos).map((todo: any) => ({
         ...todo,
         createdAt: new Date(todo.createdAt),
+        startTime: todo.startTime ? new Date(todo.startTime) : undefined,
+        endTime: todo.endTime ? new Date(todo.endTime) : undefined
       }));
     }
     return [
@@ -89,37 +90,83 @@ const TodoPage = () => {
         completed: true,
         category: 'workout',
         createdAt: new Date(Date.now() - 86400000 * 2), // 2 days ago
+        startTime: new Date(Date.now() - 86400000 * 2 + 3600000), // 2 days ago + 1 hour
+        endTime: new Date(Date.now() - 86400000 * 2 + 5400000), // 2 days ago + 1.5 hours
+        duration: 30, // 30 minutes
       },
     ];
   });
   
-  const [newTodoTitle, setNewTodoTitle] = useState('');
-  const [newTodoCategory, setNewTodoCategory] = useState('workout');
   const [filter, setFilter] = useState('all');
   const [selectedTask, setSelectedTask] = useState<Todo | null>(null);
   const [taskNotes, setTaskNotes] = useState('');
-  const [analyticsView, setAnalyticsView] = useState('weekly');
+  const [analyticsView, setAnalyticsView] = useState<AnalyticsViewType>('weekly');
+  const [newTodoCategory, setNewTodoCategory] = useState('workout');
   
   useEffect(() => {
     localStorage.setItem('fitness-todos', JSON.stringify(todos));
   }, [todos]);
 
-  const addTodo = (title: string, category: string) => {
+  const addTodo = (title: string, category: string, startTimeStr?: string, endTimeStr?: string) => {
+    let startTime: Date | undefined = undefined;
+    let endTime: Date | undefined = undefined;
+    let duration: number | undefined = undefined;
+
+    // If both start and end times are provided, calculate duration
+    if (startTimeStr && endTimeStr) {
+      const today = new Date();
+      const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+      const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+
+      // Create Date objects for today with the specified times
+      startTime = new Date(today);
+      startTime.setHours(startHour, startMinute, 0, 0);
+
+      endTime = new Date(today);
+      endTime.setHours(endHour, endMinute, 0, 0);
+
+      // Calculate duration in minutes
+      if (endTime > startTime) {
+        duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+      } else {
+        // Handle case where end time is on the next day
+        duration = ((endTime.getTime() + 24 * 60 * 60 * 1000) - startTime.getTime()) / (1000 * 60);
+      }
+    }
+
     const newTodo: Todo = {
       id: Date.now().toString(),
       title,
       completed: false,
       category,
       createdAt: new Date(),
+      startTime,
+      endTime,
+      duration,
     };
     
     setTodos([...todos, newTodo]);
   };
 
   const toggleTodo = (id: string) => {
+    const now = new Date();
     const updatedTodos = todos.map(todo => {
       if (todo.id === id) {
         const newCompleted = !todo.completed;
+        
+        let updatedTodo = { ...todo, completed: newCompleted };
+        
+        // If completing a task that has a start time but no end time, add the end time
+        if (newCompleted && todo.startTime && !todo.endTime) {
+          updatedTodo.endTime = now;
+          updatedTodo.duration = (now.getTime() - todo.startTime.getTime()) / (1000 * 60);
+        }
+        
+        // If task is being marked as incomplete, remove end time and duration
+        if (!newCompleted && todo.endTime) {
+          updatedTodo.endTime = undefined;
+          updatedTodo.duration = undefined;
+        }
         
         // If completing a task, trigger confetti sometimes
         if (newCompleted && Math.random() > 0.7) {
@@ -127,7 +174,7 @@ const TodoPage = () => {
           toast.success('Great job! 🎉');
         }
         
-        return { ...todo, completed: newCompleted };
+        return updatedTodo;
       }
       return todo;
     });
@@ -173,10 +220,26 @@ const TodoPage = () => {
   };
 
   const completeAllTasks = () => {
+    const now = new Date();
     const uncompletedTasks = todos.filter(todo => !todo.completed);
     if (uncompletedTasks.length === 0) return;
     
-    setTodos(todos.map(todo => ({ ...todo, completed: true })));
+    const updatedTodos = todos.map(todo => {
+      if (!todo.completed) {
+        let updatedTodo = { ...todo, completed: true };
+        
+        // If the task has a start time but no end time, add the end time
+        if (todo.startTime && !todo.endTime) {
+          updatedTodo.endTime = now;
+          updatedTodo.duration = (now.getTime() - todo.startTime.getTime()) / (1000 * 60);
+        }
+        
+        return updatedTodo;
+      }
+      return todo;
+    });
+    
+    setTodos(updatedTodos);
     triggerConfetti();
     toast.success('All tasks marked as complete! 🎉');
   };
@@ -189,66 +252,6 @@ const TodoPage = () => {
     return true;
   });
 
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const weeklyData: AnalyticsData[] = days.map(day => {
-    const dayOfWeek = days.indexOf(day);
-    const today = new Date();
-    const targetDate = new Date(today);
-    
-    const diff = dayOfWeek - today.getDay();
-    targetDate.setDate(today.getDate() + diff);
-    
-    const todosForDay = todos.filter(todo => {
-      const todoDate = new Date(todo.createdAt);
-      return todoDate.getDate() === targetDate.getDate() && 
-             todoDate.getMonth() === targetDate.getMonth() && 
-             todoDate.getFullYear() === targetDate.getFullYear();
-    });
-    
-    return {
-      day,
-      completed: todosForDay.filter(todo => todo.completed).length,
-      total: todosForDay.length,
-    };
-  });
-
-  const getMonthlyData = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    const weeks: AnalyticsData[] = [
-      { day: 'Week 1', completed: 0, total: 0 },
-      { day: 'Week 2', completed: 0, total: 0 },
-      { day: 'Week 3', completed: 0, total: 0 },
-      { day: 'Week 4', completed: 0, total: 0 }
-    ];
-    
-    todos.forEach(todo => {
-      const todoDate = new Date(todo.createdAt);
-      
-      if (todoDate.getMonth() === currentMonth && todoDate.getFullYear() === currentYear) {
-        const dayOfMonth = todoDate.getDate();
-        let weekIndex = Math.floor((dayOfMonth - 1) / 7);
-        if (weekIndex > 3) weekIndex = 3;
-        
-        weeks[weekIndex].total++;
-        if (todo.completed) {
-          weeks[weekIndex].completed++;
-        }
-      }
-    });
-    
-    return weeks;
-  };
-
-  const monthlyData = getMonthlyData();
-
-  const completedTodos = todos.filter(todo => todo.completed).length;
-  const completionRate = todos.length > 0 ? (completedTodos / todos.length) * 100 : 0;
-
   const getBadgeColor = (category: string) => {
     switch (category) {
       case 'workout': return 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
@@ -256,6 +259,9 @@ const TodoPage = () => {
       case 'nutrition': return 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:text-green-300';
       case 'meditation': return 'bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
       case 'mindfulness': return 'bg-violet-100 hover:bg-violet-200 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300';
+      case 'work': return 'bg-orange-100 hover:bg-orange-200 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'study': return 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'personal': return 'bg-pink-100 hover:bg-pink-200 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300';
       default: return 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300';
     }
   };
@@ -280,7 +286,7 @@ const TodoPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          Fitness Tasks
+          Task Manager
         </motion.h1>
         <div className="flex gap-2">
           <Button
@@ -379,7 +385,7 @@ const TodoPage = () => {
                                 <p className={todo.completed ? "line-through text-muted-foreground" : ""}>
                                   {todo.title}
                                 </p>
-                                <div className="flex gap-2 mt-1">
+                                <div className="flex flex-wrap gap-2 mt-1">
                                   <Badge variant="outline" className={getBadgeColor(todo.category)}>
                                     <span className="flex items-center gap-1">
                                       {getCategoryIcon(todo.category)}
@@ -390,6 +396,21 @@ const TodoPage = () => {
                                     <Calendar className="h-3 w-3" />
                                     {new Date(todo.createdAt).toLocaleDateString()}
                                   </span>
+                                  {todo.startTime && (
+                                    <span className="text-xs text-muted-foreground">
+                                      Start: {todo.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </span>
+                                  )}
+                                  {todo.endTime && (
+                                    <span className="text-xs text-muted-foreground">
+                                      End: {todo.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </span>
+                                  )}
+                                  {todo.duration && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({Math.round(todo.duration)} min)
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -430,106 +451,11 @@ const TodoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}
           >
-            <Card className="backdrop-blur-md bg-card/80 border border-white/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart className="h-5 w-5" /> Task Analytics
-                </CardTitle>
-                <CardDescription>Your progress tracking</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs 
-                  defaultValue="weekly" 
-                  value={analyticsView}
-                  onValueChange={setAnalyticsView}
-                >
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="weekly">
-                    <motion.div 
-                      key="weekly"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-60"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ReBarChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="day" />
-                          <YAxis allowDecimals={false} />
-                          <Tooltip 
-                            formatter={(value, name) => [value, name === 'completed' ? 'Completed Tasks' : 'Total Tasks']}
-                            contentStyle={{ borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.95)' }}
-                          />
-                          <Bar dataKey="total" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="completed" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                        </ReBarChart>
-                      </ResponsiveContainer>
-                    </motion.div>
-                  </TabsContent>
-                  
-                  <TabsContent value="monthly">
-                    <motion.div 
-                      key="monthly"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-60"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ReBarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="day" />
-                          <YAxis allowDecimals={false} />
-                          <Tooltip 
-                            formatter={(value, name) => [value, name === 'completed' ? 'Completed Tasks' : 'Total Tasks']}
-                            contentStyle={{ borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.95)' }}
-                          />
-                          <Bar dataKey="total" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="completed" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                        </ReBarChart>
-                      </ResponsiveContainer>
-                    </motion.div>
-                  </TabsContent>
-                </Tabs>
-
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Completion Rate</span>
-                      <span>{completionRate.toFixed(0)}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div 
-                        className="h-full bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${completionRate}%` }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
-                      ></motion.div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <Card className="bg-green-50/50 border-none dark:bg-green-900/10">
-                    <CardContent className="p-3">
-                      <div className="text-xs text-muted-foreground">Completed</div>
-                      <div className="text-xl font-semibold">{completedTodos}</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-blue-50/50 border-none dark:bg-blue-900/10">
-                    <CardContent className="p-3">
-                      <div className="text-xs text-muted-foreground">Total Tasks</div>
-                      <div className="text-xl font-semibold">{todos.length}</div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+            <TaskAnalytics 
+              todos={todos} 
+              analyticsView={analyticsView}
+              setAnalyticsView={setAnalyticsView}
+            />
           </motion.div>
 
           <motion.div
@@ -537,7 +463,7 @@ const TodoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
           >
-            <Card className="backdrop-blur-md bg-card/80 border border-white/10 ">
+            <Card className="backdrop-blur-md bg-card/80 border border-white/10">
               <CardHeader>
                 <CardTitle>Achievements</CardTitle>
                 <CardDescription>Your badges and streaks</CardDescription>
