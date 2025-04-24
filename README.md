@@ -1,73 +1,32 @@
-# Welcome to your Lovable project
+# PulseTrack 💪🏽📊
 
-## Project info
+PulseTrack is an advanced fitness tracking application designed to help users monitor and manage their fitness journey. The app provides personalized workout plans, nutrition tracking, and progress visualization, all powered by artificial intelligence (AI) to optimize your fitness experience.
 
-**URL**: https://lovable.dev/projects/cf239844-85d2-4657-b47c-adf9bf9e0db0
+## Features ✨
 
-## How can I edit this code?
+- **Personalized Workout Plans**: AI-generated customized workout plans tailored to user goals.
+- **Fitness Progress Tracking**: Visualize workout progress, including strength gains and endurance improvements.
+- **Nutrition Tracking**: Keep track of your diet, caloric intake, and nutritional values.
+- **AI-based Recommendations**: Get intelligent fitness advice and tips based on user preferences and goals.
+- **Daily Fitness Reminders**: Stay consistent with your workout routine with notifications and reminders.
 
-There are several ways of editing your application.
+## Demo Website 🌐
 
-**Use Lovable**
+Check out the live app here:  
+[PulseTrack Website](https://vercel.com/jagdishs-projects-31710210/pulse-track/AzcCnZ12tYKq7H91GjtTjPvFh86p)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/cf239844-85d2-4657-b47c-adf9bf9e0db0) and start prompting.
+## Tech Stack 🚀
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React.js, Tailwind CSS, Chart.js for visualizing progress.
+- **Backend**: Node.js, Express.js, MongoDB for user data storage.
+- **AI Integration**: TensorFlow, Machine Learning models for fitness predictions and suggestions.
+- **Authentication**: JWT (JSON Web Tokens) for secure login and session management.
 
-**Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Setup:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone this repository to your local machine:
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/cf239844-85d2-4657-b47c-adf9bf9e0db0) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+   ```bash
+   git clone https://github.com/Jagdish1123/PulseTrack.git
+   cd PulseTrack
