@@ -1,4 +1,4 @@
-# PulseTrack 💪🏽📊
+# PulseTrack 💪📊
 
 PulseTrack is an advanced fitness tracking application designed to help users monitor and manage their fitness journey. The app provides personalized workout plans, nutrition tracking, and progress visualization, all powered by artificial intelligence (AI) to optimize your fitness experience.
 
@@ -23,10 +23,4 @@ Check out the live app here:
 - **Authentication**: JWT (JSON Web Tokens) for secure login and session management.
 
 
-### Setup:
 
-1. Clone this repository to your local machine:
-
-   ```bash
-   git clone https://github.com/Jagdish1123/PulseTrack.git
-   cd PulseTrack
